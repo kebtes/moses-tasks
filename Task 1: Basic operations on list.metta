@@ -22,7 +22,7 @@
     (Cons $x (append $xs $ys)))
 
 ; examples usage
-(= list1 (Cons 1 (Cons 2 Nil)))     
+(= list1 (Cons 1 (Cons 2 Nil)))      
 (= list2 (Cons 3 (Cons 4 Nil)))     
 
 (= combined (append (eval list1) (eval list2))) 
