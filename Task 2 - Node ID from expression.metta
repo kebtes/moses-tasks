@@ -93,4 +93,4 @@ $; since the id doesnt need to be universal, we could use the node's position on
     ))
 )
 
-; ! (get-node-by-id (AND (OR A B) (NOT A)) (0 0))
+! (get-node-by-id (AND (OR A B) (NOT A)) (1 0)) ; or
