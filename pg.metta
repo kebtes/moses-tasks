@@ -61,7 +61,7 @@
     (let $level (car-atom $id)
     (let $nth (cdr-atom $id)
         (let $level-nodes (get-nodes-by-level $expr $level 0)
-            (get-nth-node $level-nodes $nth)
+            (get-nth-node $level-nodes (car-atom $nth))
         )
     ))
 )
