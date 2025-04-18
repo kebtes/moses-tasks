@@ -7,26 +7,26 @@
 (: NullVertex (Tree $a))
 (: mkNullVex (-> (List (Tree $a)) (Tree $a)))
 
-
 (: getChildren (-> Tree $a) (List (Tree $a)))
 (= (getChildren (mkTree (mkNode $r) $children)) $children)
-(= (getChildren $unknown) (Error))
+(= (getChildren (mkNullVex $children)) $children)
 
-(: preOrder (-> (Tree $a) $a))
-(= (preOrder (mkTree (mkNode $r) Nil)) $r)
-(= (preOrder (mkNullVex $knobs)) ())
-(= (preOrder (mkTree (mkNode $r) (Cons $x $xs)))
+;---------------------------NOT QUITE SURE ON THIS ONE----------------------------------
+(= (preOrder $tree (Cons $x $xs)))
      (let*
          (
-           ($lc  (List.map preOrder (Cons $x $xs)))
+           ($children (getChildren $tree))
+           ($head (car-atom $tree))
+           ($tail (cdr-atom $tree))
+           ($lc  (List.map preOrder (Cons $head $tail)))
            ($lc' (List.filter (. not isUnit) $lc))
            ($lcE (List.listToExpr $lc'))
            ;; (()   (println! (Root: $r Children: $lc Children': $lc' Expression: $lcE)))
            ($exp (cons-atom $r $lcE))
          )
          $exp)
-)
 
+;---------------------------DONE----------------------------------
 (: buildTree (-> $a (Tree $a)))
 (= (buildTree $expr)
         (if (== (get-metatype $expr) Expression)
@@ -46,13 +46,14 @@
 ;;   NodeId - The NodeId of the Subtree
 (: getSubtreeId (-> (Tree $a) NodeId (Tree $a) Number NodeId))                      
 (= (getSubtreeId $tree (mkNodeId $targetId) $subtree $iter)  
-(let $targetNode (getNodeById $tree (mkNodeId $targetId)) 
-    (let $childrenTgt (getChildren $targetNode)
-        (let $currNode (List.getByIdx $childrenTgt $iter))
-            (if (== $currNode $subtree))
-                (let $idOfSubtree (union-atom $targetId ((+ $iter 1))) (mkNodeId $idOfSubtree))
-                (getSubtreeId $tree (mkNodeId $targetId) $subtree (+ $iter 1)))))
-
+(let* 
+  ($targetNode (getNodeById $tree (mkNodeId $targetId))
+    ($childrenTgt (getChildren $targetNode))
+    ($currNode (List.getByIdx $childrenTgt $iter))
+    (if (== $currNode $subtree))
+        (let $idOfSubtree (union-atom $targetId ((+ $iter 1))) (mkNodeId $idOfSubtree))
+        (getSubtreeId $tree (mkNodeId $targetId) $subtree (+ $iter 1)))))
+            
 
 ;---------------------------DONE----------------------------------
 ;; Retrieves the children list of a node identified by its NodeId.
@@ -67,6 +68,7 @@
      (getChildren $targetNode)))
 
 
+;---------------------------DONE----------------------------------
 ;; Creates a new tree with a node inserted above the given tree as its parent.
 ;; Params:
 ;;   $tree: - The original tree to be placed as a child.
@@ -78,6 +80,7 @@
    (mkTree $node (Cons $tree Nil))
 )
 
+;---------------------------DONE----------------------------------
 ;; Replaces a subtree at a specific NodeId with a new subtree.
 ;; Params:
 ;;   $tree: - The tree to modify.
@@ -86,11 +89,12 @@
 ;; Returns:
 ;;   (Tree $a) - The updated tree with $newSubtree at $id.
 (: replaceNodeById (-> (Tree $a) NodeId (Tree $a) (Tree $a)))
-(= (replaceNodeById (mkTree (mkNode $r) $children) (mkNodeId $id) $newSubtree)
-   (if (== $id ())  
+(= (replaceNodeById $tree (mkNodeId $id) $newSubtree)
+    (if (== $id ())  
        $newSubtree
        (let*
          (
+           ($children (getChildren $tree))
            ($headId (car-atom $id))
            ($tailId (cdr-atom $id))
            ($childToUpdate (List.getByIdx $children (- $headId 1)))
@@ -100,22 +104,9 @@
            ($newChildren (List.replaceAt $children (- $headId 1) $updatedChild))
          )
          (mkTree (mkNode $r) $newChildren))))
-(= (replaceNodeById (mkNullVex $children) (mkNodeId $id) $newSubtree)
-   (if (== $id ())  
-       $newSubtree
-       (let*
-         (
-           ($headId (car-atom $id))
-           ($tailId (cdr-atom $id))
-           ($childToUpdate (List.getByIdx $children (- $headId 1)))
-           ($updatedChild (if (== $tailId ())
-                             $newSubtree
-                             (replaceNodeById $childToUpdate (mkNodeId $tailId) $newSubtree)))
-           ($newChildren (List.replaceAt $children (- $headId 1) $updatedChild))
-         )
-         (mkNullVex $newChildren))))
 
 
+;---------------------------DONE----------------------------------
 ;; Appends a child to a target node's children and returns the updated tree and child's NodeId.
 ;; Parameters:
 ;;   $tree: - The tree to modify.
@@ -152,4 +143,4 @@
             )
             ($updatedTree (mkNodeId $idOfChild))))
          ($else (Error (Target node not found or invalid)))
-       ))))            
+       ))))          
