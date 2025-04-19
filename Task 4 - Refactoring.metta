@@ -46,14 +46,17 @@
 ;;   NodeId - The NodeId of the Subtree
 (: getSubtreeId (-> (Tree $a) NodeId (Tree $a) Number NodeId))                      
 (= (getSubtreeId $tree (mkNodeId $targetId) $subtree $iter)  
-(let* 
-  ($targetNode (getNodeById $tree (mkNodeId $targetId))
-    ($childrenTgt (getChildren $targetNode))
-    ($currNode (List.getByIdx $childrenTgt $iter))
-    (if (== $currNode $subtree))
-        (let $idOfSubtree (union-atom $targetId ((+ $iter 1))) (mkNodeId $idOfSubtree))
-        (getSubtreeId $tree (mkNodeId $targetId) $subtree (+ $iter 1)))))
-            
+  (let* 
+    (
+      $targetNode (getNodeById $tree (mkNodeId $targetId))
+      $childrenTgt (getChildren $targetNode)
+      $currNode (List.getByIdx $childrenTgt $iter)
+    )
+    (if (== $currNode $subtree)
+      (let $idOfSubtree (union-atom $targetId (+ $iter 1)))
+        (mkNodeId $idOfSubtree))
+      (getSubtreeId $tree (mkNodeId $targetId) $subtree (+ $iter 1))))
+
 
 ;---------------------------DONE----------------------------------
 ;; Retrieves the children list of a node identified by its NodeId.
@@ -80,7 +83,7 @@
    (mkTree $node (Cons $tree Nil))
 )
 
-;---------------------------DONE----------------------------------
+;---------------------------NOT SURE----------------------------------
 ;; Replaces a subtree at a specific NodeId with a new subtree.
 ;; Params:
 ;;   $tree: - The tree to modify.
@@ -95,13 +98,17 @@
        (let*
          (
            ($children (getChildren $tree))
-           ($headId (car-atom $id))
-           ($tailId (cdr-atom $id))
+           (let ($headId $tailId) (decons-atom $id))
            ($childToUpdate (List.getByIdx $children (- $headId 1)))
            ($updatedChild (if (== $tailId ())
                               $newSubtree
                               (replaceNodeById $childToUpdate (mkNodeId $tailId) $newSubtree)))
-           ($newChildren (List.replaceAt $children (- $headId 1) $updatedChild))
+           ($newChildren 
+             (if (== $headId 0)
+               $children  
+               (List.replaceAt $children (- $headId 1) $updatedChild)
+             )
+           )
          )
          (mkTree (mkNode $r) $newChildren))))
 
@@ -119,28 +126,12 @@
    (let*
      (
        ($targetNode (getNodeById $tree (mkNodeId $target)))
+       ($targetChildren (getChildren $targetNode))
+       ($updatedChildrenTgt (List.append $child $childrenTgt))
+       ($childIndex (List.length $updatedChildrenTgt))
+       ($idOfChild (union-atom $target ($childIndex)))
+       ($newTargetSubtree (mkNullVex $updatedChildrenTgt))
+       ($updatedTree (replaceNodeById $tree (mkNodeId $target) $newTargetSubtree))
      )
-     (case $targetNode
-       (
-         ((mkTree (mkNode $r) $childrenTgt)
-          (let*
-            (
-              ($updatedChildrenTgt (List.append $child $childrenTgt))
-              ($childIndex (List.length $updatedChildrenTgt))
-              ($idOfChild (union-atom $target ($childIndex)))
-              ($newTargetSubtree (mkTree (mkNode $r) $updatedChildrenTgt))
-              ($updatedTree (replaceNodeById $tree (mkNodeId $target) $newTargetSubtree))
-            )
-            ($updatedTree (mkNodeId $idOfChild))))
-         ((mkNullVex $childrenTgt)
-          (let*
-            (
-              ($updatedChildrenTgt (List.append $child $childrenTgt))
-              ($childIndex (List.length $updatedChildrenTgt))
-              ($idOfChild (union-atom $target ($childIndex)))
-              ($newTargetSubtree (mkNullVex $updatedChildrenTgt))
-              ($updatedTree (replaceNodeById $tree (mkNodeId $target) $newTargetSubtree))
-            )
-            ($updatedTree (mkNodeId $idOfChild))))
-         ($else (Error (Target node not found or invalid)))
-       ))))          
+      
+      ($updatedTree (mkNodeId $idOfChild))))       
