@@ -11,9 +11,11 @@
 (= (getChildren (mkTree (mkNode $r) $children)) $children)
 (= (getChildren (mkNullVex $children)) $children)
 
-(: getChildren (-> (Tree $a) (Node $a)))
-(= (getRoot (mkTree (mkNode $r) $children)) $r)
-(= (getRoot (mkNullVex $children)) Nil)
+(: updateChildren (-> (Tree $a) (List (Tree $a)) (Tree $a)))
+(= (updateChildren (mkTree (mkNode $r) $oldChildren) $newChildren)
+   (mkTree (mkNode $r) $newChildren))
+(= (updateChildren (mkNullVex $oldChildren) $newChildren)
+   (mkNullVex $newChildren))
 
 (: preOrder (-> (Tree $a) $a))
 (= (preOrder (mkTree (mkNode $r) Nil)) $r)
@@ -93,35 +95,26 @@
 ;;   $newSubtree: - The new subtree to insert.
 ;; Returns:
 ;;   (Tree $a) - The updated tree with $newSubtree at $id.
-(: replaceNodeById (-> (Tree $a) NodeId (Tree $a) (Tree $a)))
-(= (replaceNodeById (mkTree (mkNode $r) $children) (mkNodeId $id) $newSubtree)
-   (if (== $id ())  
+(= (replaceNodeById $tree (mkNodeId $id) $newSubtree)
+   (if (== $id ())
        $newSubtree
-       (let*
-         (
-           ($headId (car-atom $id))
-           ($tailId (cdr-atom $id))
-           ($childToUpdate (List.getByIdx $children (- $headId 1)))
-           ($updatedChild (if (== $tailId ())
-                              $newSubtree
-                              (replaceNodeById $childToUpdate (mkNodeId $tailId) $newSubtree)))
-           ($newChildren (List.replaceAt $children (- $headId 1) $updatedChild))
-         )
-         (mkTree (mkNode $r) $newChildren))))
-(= (replaceNodeById (mkNullVex $children) (mkNodeId $id) $newSubtree)
-   (if (== $id ())  
-       $newSubtree
-       (let*
-         (
-           ($headId (car-atom $id))
-           ($tailId (cdr-atom $id))
-           ($childToUpdate (List.getByIdx $children (- $headId 1)))
-           ($updatedChild (if (== $tailId ())
-                             $newSubtree
-                             (replaceNodeById $childToUpdate (mkNodeId $tailId) $newSubtree)))
-           ($newChildren (List.replaceAt $children (- $headId 1) $updatedChild))
-         )
-         (mkNullVex $newChildren))))
+       (let* (($headId (car-atom $id))
+              ($tailId (cdr-atom $id))
+              ($children (getChildren $tree))
+              ($childToUpdate
+                 (List.getByIdx $children (- $headId 1)) )
+              ($updatedChild
+                 (if (== $tailId ())
+                     $newSubtree
+                     (replaceNodeById $childToUpdate
+                                      (mkNodeId $tailId)
+                                      $newSubtree)))
+              ($newChildren
+                 (List.replaceAt $children
+                                 (- $headId 1)
+                                 $updatedChild)))
+         
+         (updateChildren $tree $newChildren))))
 
 
 ;; Appends a child to a target node's children and returns the updated tree and child's NodeId.
@@ -131,18 +124,18 @@
 ;;   $child: - The new child to append.
 ;; Returns:
 ;;   ((Tree $a) NodeId) - Tuple of updated tree and NodeId of the new child.    
-(: appendChild (-> (Tree $a) NodeId (Tree $a) ((Tree $a) NodeId)))
+(: appendChild (-> (Tree $a) NodeId (Tree $a) (List (U (Tree $a) NodeId))))
 (= (appendChild $tree (mkNodeId $target) $child)
-   (let*
-     (
-       ($targetNode (getNodeById $tree (mkNodeId $target)))
-       ($childrenTgt (getChildren $targetNode))
-       ($updatedChildrenTgt (List.append $child $childrenTgt))
-       ($childIndex (List.length $updatedChildrenTgt))
-       ($idOfChild (union-atom $target ($childIndex)))
-       ($r (getRoot $targetNode))
-       ($newTargetSubtree (mkTree (mkNode $r) $updatedChildrenTgt))
-       ($updatedTree (replaceNodeById $tree (mkNodeId $target) $newTargetSubtree))
-     )
-     
+   (let* 
+      (
+        ( $targetNode (getNodeById $tree (mkNodeId $target)))       
+        ( $childrenTgt (getChildren $targetNode))                  
+        ( $updatedChildrenTgt (List.append $child $childrenTgt))   
+        ( $childIndex (List.length $updatedChildrenTgt))          
+        ( $idOfChild (union-atom $target ($childIndex)))          
+        ( $newTargetSubtree (updateChildren $targetNode $updatedChildrenTgt))
+        ( $updatedTree (replaceNodeById $tree (mkNodeId $target) $newTargetSubtree))
+      )
+
     ($updatedTree (mkNodeId $idOfChild))))   
+     
