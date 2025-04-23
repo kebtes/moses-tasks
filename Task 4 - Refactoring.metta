@@ -101,18 +101,13 @@
        (let* (($headId (car-atom $id))
               ($tailId (cdr-atom $id))
               ($children (getChildren $tree))
-              ($childToUpdate
-                 (List.getByIdx $children (- $headId 1)) )
+              ($childToUpdate (List.getByIdx $children (- $headId 1)) )
               ($updatedChild
                  (if (== $tailId ())
                      $newSubtree
-                     (replaceNodeById $childToUpdate
-                                      (mkNodeId $tailId)
-                                      $newSubtree)))
+                     (replaceNodeById $childToUpdate (mkNodeId $tailId) $newSubtree)))
               ($newChildren
-                 (List.replaceAt $children
-                                 (- $headId 1)
-                                 $updatedChild)))
+                 (List.replaceAt $children (- $headId 1) $updatedChild)))
          
          (updateChildren $tree $newChildren))))
 
